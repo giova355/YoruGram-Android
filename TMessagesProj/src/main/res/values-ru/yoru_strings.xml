@@ -1,0 +1,10 @@
+<resources>
+    <string name="YoruSettings">Настройки YoruGram</string>
+    <string name="YoruWallpaperDescription">Коллекция ночных обоев Midnight.</string>
+    <string name="YoruExportWallpaper">Сохранить выбранные обои</string>
+    <string name="YoruWallpaperHelp">Сохраните изображение и выберите его в обычных настройках фона чатов. Предпросмотр не меняет фон переписки.</string>
+    <string name="YoruExportError">Не удалось сохранить обои.</string>
+    <string name="YoruExported">Обои сохранены.</string>
+    <string name="YoruProxyHelp">Используйте собственный прокси Telegram для подключения приложения. Серверы YoruGram и пробный период пока недоступны.</string>
+    <string name="YoruProxySettings">Настройки прокси</string>
+</resources>

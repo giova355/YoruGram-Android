@@ -1,0 +1,11 @@
+<resources>
+    <string name="YoruAppName" translatable="false">YoruGram</string>
+    <string name="YoruSettings">YoruGram settings</string>
+    <string name="YoruWallpaperDescription">Explore the Midnight wallpaper collection.</string>
+    <string name="YoruExportWallpaper">Save selected wallpaper</string>
+    <string name="YoruWallpaperHelp">Save the image, then select it in the standard chat wallpaper settings. Preview selection does not change chat backgrounds.</string>
+    <string name="YoruExportError">Could not save wallpaper.</string>
+    <string name="YoruExported">Wallpaper saved.</string>
+    <string name="YoruProxyHelp">Use your own Telegram proxy for app-only connectivity. Managed servers and trial subscriptions are not available yet.</string>
+    <string name="YoruProxySettings">Open proxy settings</string>
+</resources>
