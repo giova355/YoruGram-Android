@@ -1,0 +1,56 @@
+name: YoruGram test APK
+on:
+  push:
+    branches: ['yoru/foundation']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Check build configuration
+        env:
+          YORU_API_ID: ${{ secrets.YORU_API_ID }}
+          YORU_API_HASH: ${{ secrets.YORU_API_HASH }}
+          YORU_FIREBASE_JSON: ${{ secrets.YORU_FIREBASE_JSON }}
+        run: |
+          test -n "$YORU_API_ID" && test -n "$YORU_API_HASH" && test -n "$YORU_FIREBASE_JSON" || { echo "::error::Configure YoruGram API and Firebase secrets first"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Android dependencies
+        run: |
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+      - name: Configure private test build
+        env:
+          YORU_API_ID: ${{ secrets.YORU_API_ID }}
+          YORU_API_HASH: ${{ secrets.YORU_API_HASH }}
+          YORU_FIREBASE_JSON: ${{ secrets.YORU_FIREBASE_JSON }}
+        run: |
+          python3 yoru-build/configure.py
+          rm -f TMessagesProj/config/release.keystore
+          keytool -genkeypair -keystore TMessagesProj/config/release.keystore -storepass android -keypass android -alias androidkey -keyalg RSA -keysize 2048 -validity 365 -dname 'CN=YoruGram CI Test'
+      - name: Compile standalone debug variant
+        run: bash gradlew --no-daemon :TMessagesProj_AppStandalone:assembleAfatDebug
+      - name: Verify APK signature and package
+        run: |
+          mapfile -t apks < <(find TMessagesProj_AppStandalone/build/outputs/apk -name '*.apk' -type f)
+          test "${#apks[@]}" -eq 1
+          tools="$ANDROID_HOME/build-tools/36.0.0"
+          "$tools/apksigner" verify "${apks[0]}"
+          "$tools/aapt" dump badging "${apks[0]}" | grep '^package:' | grep -F "name='org.yorugram.messenger.web'"
+          mkdir -p dist
+          cp "${apks[0]}" dist/YoruGram-v0.1.0-test.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YoruGram-test-APK
+          path: dist/YoruGram-v0.1.0-test.apk
+          if-no-files-found: error
+          retention-days: 7
