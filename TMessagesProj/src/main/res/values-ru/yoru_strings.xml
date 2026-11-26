@@ -7,4 +7,5 @@
     <string name="YoruExported">Обои сохранены.</string>
     <string name="YoruProxyHelp">Используйте собственный прокси Telegram для подключения приложения. Серверы YoruGram и пробный период пока недоступны.</string>
     <string name="YoruProxySettings">Настройки прокси</string>
+    <string name="YoruConnectBeforeLogin">Yoru Connect: настройки прокси</string>
 </resources>

@@ -8,4 +8,5 @@
     <string name="YoruExported">Wallpaper saved.</string>
     <string name="YoruProxyHelp">Use your own Telegram proxy for app-only connectivity. Managed servers and trial subscriptions are not available yet.</string>
     <string name="YoruProxySettings">Open proxy settings</string>
+    <string name="YoruConnectBeforeLogin">Yoru Connect: proxy settings</string>
 </resources>
