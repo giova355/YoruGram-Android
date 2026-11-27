@@ -14,12 +14,14 @@ jobs:
   android:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      USE_PROJECT_API: ${{ inputs.use_project_api == true || (github.event_name == 'push' && vars.YORU_CI_PROJECT_API == 'true') }}
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Configure project API and Firebase
-        if: inputs.use_project_api == true
+        if: env.USE_PROJECT_API == 'true'
         env:
           YORU_API_ID: ${{ secrets.YORU_API_ID }}
           YORU_API_HASH: ${{ secrets.YORU_API_HASH }}
@@ -47,8 +49,6 @@ jobs:
           "$manager" --sdk_root="$sdk" --licenses < <(yes)
           "$manager" --sdk_root="$sdk" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1' 'platform-tools'
       - name: Compile standalone debug variant
-        env:
-          USE_PROJECT_API: ${{ inputs.use_project_api == true }}
         run: |
           args=()
           if [[ "$USE_PROJECT_API" != true ]]; then
@@ -56,8 +56,6 @@ jobs:
           fi
           bash gradlew --no-daemon "${args[@]}" :TMessagesProj_AppStandalone:assembleAfatDebug
       - name: Verify APK signature, package and native libraries
-        env:
-          USE_PROJECT_API: ${{ inputs.use_project_api == true }}
         run: |
           mapfile -t apks < <(find TMessagesProj_AppStandalone/build/outputs/apk -name '*.apk' -type f)
           test "${#apks[@]}" -eq 1
@@ -79,15 +77,15 @@ jobs:
           mkdir -p dist
           cp "${apks[0]}" "dist/$filename"
       - uses: actions/upload-artifact@v4
-        if: inputs.use_project_api != true || github.event.repository.private
+        if: env.USE_PROJECT_API != 'true' || github.event.repository.private
         with:
-          name: YoruGram-${{ inputs.use_project_api && 'project-api-test' || 'offline-test' }}-APK
+          name: YoruGram-${{ env.USE_PROJECT_API == 'true' && 'project-api-test' || 'offline-test' }}-APK
           path: dist/*.apk
           if-no-files-found: error
           retention-days: 7
 
       - name: Install and launch on an Android emulator
-        if: inputs.use_project_api != true
+        if: env.USE_PROJECT_API != 'true'
         run: |
           sdk="$ANDROID_HOME"
           tools="$sdk/cmdline-tools/latest/bin"
@@ -125,7 +123,7 @@ jobs:
           [[ "$resumed" == *"$package/"* ]]
           "$adb" exec-out screencap -p > dist/YoruGram-Android.png
       - uses: actions/upload-artifact@v4
-        if: inputs.use_project_api != true
+        if: env.USE_PROJECT_API != 'true'
         with:
           name: YoruGram-Android-first-launch
           path: dist/YoruGram-Android.png
