@@ -16,6 +16,8 @@ Use a clean checkout for this build. Its Android package is `org.yorugram.messen
 
 Pushing to `yoru/foundation` builds the offline variant in GitHub Actions. CI verifies the APK signature, package, Internet permission and native libraries before uploading the artifact as `YoruGram-Offline-Test.apk`.
 
+The workflow also installs the APK on an Android 35 x86_64 emulator, opens the launcher activity, and checks that YoruGram stays in the foreground before capturing the screen.
+
 ## Build with project credentials
 
 1. Register the app at [my.telegram.org](https://my.telegram.org/) and use the API ID and hash issued to this project.
