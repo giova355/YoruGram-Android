@@ -4,6 +4,9 @@ apply plugin: 'com.android.library'
 apply plugin: 'org.telegram.build-plugin'
 apply plugin: 'idea'
 
+def yoruOfflineSmoke = providers.gradleProperty('yoruOfflineSmoke').map { it.toBoolean() }.getOrElse(false)
+def yoruContactsAccountType = "${APP_PACKAGE}.web${yoruOfflineSmoke ? '.smoke' : ''}.contacts"
+
 idea {
     module {
         excludeDirs += [
@@ -147,7 +150,8 @@ android {
     defaultConfig {
         minSdkVersion 23
         targetSdkVersion 36
-        buildConfigField "boolean", "YORU_OFFLINE_SMOKE", providers.gradleProperty('yoruOfflineSmoke').map { it.toBoolean() }.getOrElse(false).toString()
+        buildConfigField "boolean", "YORU_OFFLINE_SMOKE", yoruOfflineSmoke.toString()
+        resValue "string", "yoru_contacts_account_type", yoruContactsAccountType
 
         vectorDrawables.generatedDensities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi']
 
