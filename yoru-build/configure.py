@@ -14,12 +14,24 @@ def configure(root, env):
         raise ValueError('Set a valid YORU_API_HASH secret')
     try:
         firebase = json.loads(env.get('YORU_FIREBASE_JSON', ''))
-        packages = {c['client_info']['android_client_info']['package_name'] for c in firebase['client']}
+        project_number = firebase['project_info']['project_number']
+        clients = [c for c in firebase['client'] if
+                   c['client_info']['android_client_info']['package_name'] == 'org.yorugram.messenger.web']
     except (ValueError, KeyError, TypeError):
         raise ValueError('Invalid YORU_FIREBASE_JSON secret') from None
-    required = {'org.yorugram.messenger.web', 'org.telegram.messenger'}
-    if not required.issubset(packages):
-        raise ValueError('Firebase must contain both the standalone package and the upstream library namespace')
+    if len(clients) != 1:
+        raise ValueError('Firebase must contain exactly one client for org.yorugram.messenger.web')
+    try:
+        client = clients[0]
+        required_values = (
+            project_number,
+            client['client_info']['mobilesdk_app_id'],
+            client['api_key'][0]['current_key'],
+        )
+        if not all(isinstance(value, str) and value for value in required_values):
+            raise ValueError()
+    except (IndexError, KeyError, TypeError, ValueError):
+        raise ValueError('Incomplete Firebase configuration for org.yorugram.messenger.web') from None
     props = root / 'gradle.properties'
     if 'APP_PACKAGE=org.yorugram.messenger' not in props.read_text().splitlines():
         raise ValueError('YoruGram application ID missing')
@@ -32,9 +44,10 @@ def configure(root, env):
         code, count = re.subn(pattern, replacement, code)
         if count != 1:
             raise ValueError('Unexpected BuildVars structure')
-    src.write_text(code)
-    for module in ('TMessagesProj', 'TMessagesProj_AppStandalone'):
-        (root / module / 'google-services.json').write_text(json.dumps(firebase))
+    services = root / 'TMessagesProj_AppStandalone/src/afatDebug/google-services.json'
+    services.parent.mkdir(parents=True, exist_ok=True)
+    services.write_text(json.dumps(firebase), encoding='utf-8')
+    src.write_text(code, encoding='utf-8')
 
 if __name__ == '__main__':
     try:

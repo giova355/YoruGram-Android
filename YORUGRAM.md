@@ -1,36 +1,28 @@
-# YoruGram 0.1.0 Foundation
+# YoruGram Android Foundation
 
-Unofficial Telegram Android fork. The upstream GPL license and notices remain in place.
+Unofficial Telegram Android fork. The upstream GPL license and notices remain in place. This branch includes a YoruGram settings screen, a localized wallpaper gallery with PNG export, and a shortcut to Telegram's built-in proxy configuration.
 
-This branch integrates the independent YoruGram settings screen, localized wallpaper gallery, PNG export and a shortcut to the built-in Telegram proxy configuration. The included WebP resources are reduced-resolution versions of the Foundation artwork. Chat wallpaper application is still manual after export. Managed proxy servers, trial access, billing and owner entitlements are not implemented.
+## Build and install the offline APK
 
-## Test build
-
-Android SDK 36, NDK 27.2.12479018, CMake 3.22.1, Java 17 and recursive git submodules are required. Use your own Telegram API ID and hash from https://my.telegram.org, and your own Firebase project. Its google-services.json must include org.yorugram.messenger.web and the library namespace org.telegram.messenger. Set the environment variables YORU_API_ID, YORU_API_HASH and YORU_FIREBASE_JSON; run python3 yoru-build/configure.py in the repository root, replace the dummy release keystore with your own test key and configure signing properties before running:
+Install JDK 17, Android SDK Platform 36, Build Tools 36.0.0, NDK 27.2.12479018, and CMake 3.22.1. Clone `yoru/foundation` and its submodules. Open the repository root as a project in Android Studio or use the same root in VS Code.
 
 ```sh
-bash gradlew --no-daemon :TMessagesProj_AppStandalone:assembleAfatDebug
+git submodule update --init --recursive --depth 1
+bash gradlew --no-daemon -PyoruOfflineSmoke=true :TMessagesProj_AppStandalone:assembleAfatDebug
+adb install -r TMessagesProj_AppStandalone/build/outputs/apk/afat/debug/app.apk
 ```
 
-Do not commit API credentials, Firebase files, signing keys or passwords. This is a private testing build only; the upstream debug configuration exposes diagnostic features. Production builds require a stable signing key and review of other upstream service credentials, package dependencies, branding, and licenses. Android build and runtime are not yet verified.
+Use a clean checkout for this build. Its Android package is `org.yorugram.messenger.web.smoke`. This build uses the Android debug key and includes ARM64, ARMv7 and x86_64 libraries. It has no Internet permission and uses no Telegram or Firebase credentials. Use it for installation and local interface checks. Sign-in, messaging, push delivery, and proxy connectivity require the project API build.
 
-## Android CI setup
+Pushing to `yoru/foundation` builds the offline variant in GitHub Actions. CI verifies the APK signature, package, Internet permission and native libraries before uploading the artifact as `YoruGram-Offline-Test.apk`.
 
-The first Actions run (45721658878) stopped at its configuration check because one or more required repository secrets were absent. No Gradle compilation took place.
+## Build with project credentials
 
-1. Register your own application at https://my.telegram.org under API development tools.
-2. Create a Firebase project and register Android apps for both `org.yorugram.messenger.web` and `org.telegram.messenger` (the upstream library namespace, not a second installed application). Download the updated configuration containing both client records.
-3. Add repository Actions secrets `YORU_API_ID`, `YORU_API_HASH`, and `YORU_FIREBASE_JSON` (complete JSON text) at https://github.com/giova355/YoruGram-Android/settings/secrets/actions.
-4. Re-run the failed Android job. Successful CI should verify the APK signature and application ID and upload `YoruGram-test-APK`. Do not distribute the debug APK as a production release. CI currently generates a fresh test signing key per run, so subsequent APKs may require uninstalling the earlier test build.
+1. Register the app at [my.telegram.org](https://my.telegram.org/) and use the API ID and hash issued to this project.
+2. In your Firebase project, register the Android app `org.yorugram.messenger.web` and download its `google-services.json`. Enable Firebase Cloud Messaging to test push delivery.
+3. In a disposable checkout, provide `YORU_API_ID`, `YORU_API_HASH` and `YORU_FIREBASE_JSON` as environment variables, with the full JSON contents in the last variable. Run `python3 yoru-build/configure.py` from the repository root. It configures the standalone debug variant and replaces the local API placeholders in `BuildVars.java`.
+4. Run `bash gradlew --no-daemon :TMessagesProj_AppStandalone:assembleAfatDebug`. Install the resulting debug APK with `adb install -r`. Keep the same local debug key when testing APK updates.
 
-## Windows x64 companion client (planned)
+For CI, set the same names as [repository secrets](https://github.com/giova355/YoruGram-Android/settings/secrets/actions) and select **Build with the project's Telegram API and Firebase configuration** when manually starting the workflow. CI compiles this variant on a public fork and uploads its APK only in a private repository. Keep the configured Java source, Firebase files, and signing keys out of commits. Use your own stable signing key for a production release.
 
-The Android Gradle project cannot produce a native Windows EXE. Use a separate fork, `YoruGram-Desktop`, of https://github.com/telegramdesktop/tdesktop. Reviewed upstream dev revision: `3fad5a7ff199a846922293cecd7d1e63c052adab` (7.4.6). See its [Windows build instructions](https://github.com/telegramdesktop/tdesktop/blob/3fad5a7ff199a846922293cecd7d1e63c052adab/docs/building-win.md).
-
-- Visual Studio 2026, MSVC 14.44, Windows SDK 10.0.26100.0, Python, recursive submodules, upstream dependency preparation.
-- Integrate independent YoruGram branding and resources, separate app identity and data directory, retain GPL notices. Disable the upstream automatic updater until a verified independent update mechanism exists.
-- Use the project's own Telegram API credentials via protected build configuration, never commit credentials.
-- Implement and test YoruGram settings, wallpapers, and supported proxy options in the native desktop client.
-- Build Windows x64 using the upstream CMake procedure. Verify the resulting executable and its dependencies, test login with an authorized test account and coexistence with the official client, then package as a ZIP with SHA-256.
-- A separate fork and Windows runner are required. No Windows source modifications, EXE build, or runtime tests have been completed.
-
+The Windows companion is [YoruGram Desktop](https://github.com/giova355/YoruGram-Desktop/tree/yoru/foundation).

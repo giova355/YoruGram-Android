@@ -3,6 +3,11 @@ on:
   push:
     branches: ['yoru/foundation']
   workflow_dispatch:
+    inputs:
+      use_project_api:
+        description: Build with the project's Telegram API and Firebase configuration
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -10,62 +15,60 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - name: Check build configuration
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure project API and Firebase
+        if: inputs.use_project_api == true
         env:
           YORU_API_ID: ${{ secrets.YORU_API_ID }}
           YORU_API_HASH: ${{ secrets.YORU_API_HASH }}
           YORU_FIREBASE_JSON: ${{ secrets.YORU_FIREBASE_JSON }}
-        run: |
-          missing=0
-          for name in YORU_API_ID YORU_API_HASH YORU_FIREBASE_JSON; do
-            if [[ -z "${!name}" ]]; then
-              echo "::error::Missing repository secret: $name"
-              missing=1
-            fi
-          done
-          if [[ "$missing" -ne 0 ]]; then exit 1; fi
-          if [[ ! "$YORU_API_ID" =~ ^[1-9][0-9]{0,9}$ ]]; then
-            echo "::error::YORU_API_ID must be a positive numeric API ID"
-            exit 1
-          fi
-          if [[ ! "$YORU_API_HASH" =~ ^[a-fA-F0-9]{32}$ ]]; then
-            echo "::error::YORU_API_HASH must be 32 hexadecimal characters"
-            exit 1
-          fi
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          persist-credentials: false
+        run: python3 yoru-build/configure.py
+      - name: Check out build dependencies
+        run: git submodule update --init --recursive --depth 1 --jobs 8
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
       - name: Install Android dependencies
-        run: |
-          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
-      - name: Configure private test build
-        env:
-          YORU_API_ID: ${{ secrets.YORU_API_ID }}
-          YORU_API_HASH: ${{ secrets.YORU_API_HASH }}
-          YORU_FIREBASE_JSON: ${{ secrets.YORU_FIREBASE_JSON }}
-        run: |
-          python3 yoru-build/configure.py
-          rm -f TMessagesProj/config/release.keystore
-          keytool -genkeypair -keystore TMessagesProj/config/release.keystore -storepass android -keypass android -alias androidkey -keyalg RSA -keysize 2048 -validity 365 -dname 'CN=YoruGram CI Test'
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
       - name: Compile standalone debug variant
-        run: bash gradlew --no-daemon :TMessagesProj_AppStandalone:assembleAfatDebug
-      - name: Verify APK signature and package
+        env:
+          USE_PROJECT_API: ${{ inputs.use_project_api == true }}
+        run: |
+          args=()
+          if [[ "$USE_PROJECT_API" != true ]]; then
+            args+=(-PyoruOfflineSmoke=true)
+          fi
+          bash gradlew --no-daemon "${args[@]}" :TMessagesProj_AppStandalone:assembleAfatDebug
+      - name: Verify APK signature, package and native libraries
+        env:
+          USE_PROJECT_API: ${{ inputs.use_project_api == true }}
         run: |
           mapfile -t apks < <(find TMessagesProj_AppStandalone/build/outputs/apk -name '*.apk' -type f)
           test "${#apks[@]}" -eq 1
           tools="$ANDROID_HOME/build-tools/36.0.0"
           "$tools/apksigner" verify "${apks[0]}"
-          "$tools/aapt" dump badging "${apks[0]}" | grep '^package:' | grep -F "name='org.yorugram.messenger.web'"
+          package=org.yorugram.messenger.web
+          filename=YoruGram.apk
+          if [[ "$USE_PROJECT_API" != true ]]; then
+            package+=.smoke
+            filename=YoruGram-Offline-Test.apk
+            permissions=$("$tools/aapt" dump permissions "${apks[0]}")
+            [[ "$permissions" != *android.permission.INTERNET* ]]
+          fi
+          badging=$("$tools/aapt" dump badging "${apks[0]}")
+          [[ "$badging" == "package: name='$package'"* ]]
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            unzip -Z1 "${apks[0]}" "lib/$abi/libtmessages.49.so"
+          done
           mkdir -p dist
-          cp "${apks[0]}" dist/YoruGram-v0.1.0-test.apk
+          cp "${apks[0]}" "dist/$filename"
       - uses: actions/upload-artifact@v4
+        if: inputs.use_project_api != true || github.event.repository.private
         with:
-          name: YoruGram-test-APK
-          path: dist/YoruGram-v0.1.0-test.apk
+          name: YoruGram-${{ inputs.use_project_api && 'project-api-test' || 'offline-test' }}-APK
+          path: dist/*.apk
           if-no-files-found: error
           retention-days: 7

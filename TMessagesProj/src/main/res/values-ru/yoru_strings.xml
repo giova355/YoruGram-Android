@@ -1,4 +1,5 @@
 <resources>
+    <string name="YoruSmokeAppName">YoruGram (автономный тест)</string>
     <string name="YoruSettings">Настройки YoruGram</string>
     <string name="YoruWallpaperDescription">Коллекция ночных обоев Midnight.</string>
     <string name="YoruExportWallpaper">Сохранить выбранные обои</string>
