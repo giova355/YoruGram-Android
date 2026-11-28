@@ -3,9 +3,11 @@
 import argparse
 import asyncio
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 import logging
 import os
 from pathlib import Path
+import re
 import socket
 import stat
 import subprocess
@@ -29,6 +31,7 @@ def free_ports():
 def wait_for_stats(port, process, require_relay):
     opener = build_opener(ProxyHandler({}))
     deadline = time.monotonic() + (25 if require_relay else 5)
+    stats = {}
     while time.monotonic() < deadline and process.poll() is None:
         try:
             with opener.open(f"http://127.0.0.1:{port}/stats", timeout=1) as response:
@@ -41,6 +44,10 @@ def wait_for_stats(port, process, require_relay):
         except OSError:
             pass
         time.sleep(0.2)
+    for key in ("outbound_connections_created", "total_connect_failures", "ready_outbound_connections",
+                "total_ready_targets", "total_active_targets"):
+        if key in stats:
+            print(f"{key}: {stats[key]}", file=sys.stderr)
     raise RuntimeError("MTProxy did not report a ready relay" if require_relay else "MTProxy stats unavailable")
 
 
@@ -64,6 +71,23 @@ async def request_pq(port, key):
         await connection.disconnect()
 
 
+def check_relay_tcp(config):
+    content = (config / "relay" / "proxy-multi.conf").read_text()
+    endpoints = set(re.findall(r"(?m)^proxy_for\s+-?\d+\s+([\d.]+):(\d+);", content))
+
+    def reachable(endpoint):
+        host, port = endpoint
+        try:
+            with socket.create_connection((host, int(port)), timeout=3):
+                return True
+        except OSError:
+            return False
+
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        successes = sum(pool.map(reachable, endpoints))
+    print(f"Direct TCP reachability to configured Telegram relays: {successes}/{len(endpoints)}", flush=True)
+
+
 def test_node(engine, config, live, nat):
     ctl = [sys.executable, str(CTL), "--config-dir", str(config)]
     subprocess.run([*ctl, "init"], check=True)
@@ -85,6 +109,9 @@ def test_node(engine, config, live, nat):
     ]
     if nat:
         command.extend(("--nat", nat))
+    if live:
+        check_relay_tcp(config)
+        command.append("--verbose")
     with tempfile.TemporaryFile() as log:
         with subprocess.Popen(command, stdout=log, stderr=log) as process:
             try:

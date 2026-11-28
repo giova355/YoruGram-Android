@@ -130,6 +130,8 @@ def run_proxy(args):
     ]
     if args.nat:
         command.extend(("--nat-info", args.nat))
+    if args.verbose:
+        command.append("--verbosity=2")
     command.append(str(relay / RELAY_FILES[1]))
     os.execv(args.engine, command)
 
@@ -161,6 +163,7 @@ def main():
     run.add_argument("--port", type=port_number, default=443)
     run.add_argument("--stats-port", type=port_number, default=2399)
     run.add_argument("--nat", type=ipv4_pair)
+    run.add_argument("--verbose", action="store_true")
     status = commands.add_parser("status")
     status.add_argument("--stats-port", type=port_number, default=2399)
     args = parser.parse_args()
