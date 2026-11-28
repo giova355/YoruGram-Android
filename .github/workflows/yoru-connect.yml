@@ -29,6 +29,6 @@ jobs:
       - name: Exercise WireGuard in isolated network namespaces
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq wireguard-tools iputils-ping iproute2
+          sudo apt-get install -y -qq wireguard-tools iputils-ping iproute2 nftables
           sudo modprobe wireguard
           sudo bash tests/wireguard-smoke.sh "$PWD/.venv/bin/python"

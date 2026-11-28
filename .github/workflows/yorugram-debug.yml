@@ -4,6 +4,7 @@ on:
     branches: ['yoru/foundation']
     paths-ignore:
       - 'yoru-connect/**'
+      - '.github/workflows/yoru-connect.yml'
   workflow_dispatch:
     inputs:
       use_project_api:
