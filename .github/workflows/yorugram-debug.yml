@@ -2,6 +2,8 @@ name: YoruGram test APK
 on:
   push:
     branches: ['yoru/foundation']
+    paths-ignore:
+      - 'yoru-connect/**'
   workflow_dispatch:
     inputs:
       use_project_api:
@@ -36,18 +38,8 @@ jobs:
       - name: Install Android SDK and native build tools
         run: |
           sdk="$RUNNER_TEMP/android-sdk"
-          archive="$RUNNER_TEMP/android-command-line-tools.zip"
-          curl --fail --silent --show-error --retry 3 \
-            https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip \
-            -o "$archive"
-          printf '%s  %s\n' 7ec965280a073311c339e571cd5de778b9975026cfcbe79f2b1cdcb1e15317ee "$archive" | sha256sum --check
-          mkdir -p "$sdk/cmdline-tools"
-          unzip -q "$archive" -d "$sdk/cmdline-tools"
-          mv "$sdk/cmdline-tools/cmdline-tools" "$sdk/cmdline-tools/latest"
+          bash yoru-build/install-android-sdk.sh "$sdk" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1' 'platform-tools'
           printf 'ANDROID_HOME=%s\nANDROID_SDK_ROOT=%s\n' "$sdk" "$sdk" >> "$GITHUB_ENV"
-          manager="$sdk/cmdline-tools/latest/bin/sdkmanager"
-          "$manager" --sdk_root="$sdk" --licenses < <(yes)
-          "$manager" --sdk_root="$sdk" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1' 'platform-tools'
       - name: Compile standalone debug variant
         run: |
           args=()
@@ -87,41 +79,8 @@ jobs:
       - name: Install and launch on an Android emulator
         if: env.USE_PROJECT_API != 'true'
         run: |
-          sdk="$ANDROID_HOME"
-          tools="$sdk/cmdline-tools/latest/bin"
-          adb="$sdk/platform-tools/adb"
-          image='system-images;android-35;google_apis;x86_64'
-          "$tools/sdkmanager" --sdk_root="$sdk" 'emulator' "$image"
-          "$tools/avdmanager" create avd --name yoru-smoke --package "$image" <<< no
-          acceleration=off
-          if [[ -e /dev/kvm ]]; then
-            sudo chown "$(id -u):$(id -g)" /dev/kvm
-            acceleration=on
-          fi
-          "$sdk/emulator/emulator" -avd yoru-smoke -no-window -no-audio -no-snapshot \
-            -gpu swiftshader_indirect -accel "$acceleration" > "$RUNNER_TEMP/yoru-emulator.log" 2>&1 &
-          emulator_pid=$!
-          trap 'kill "$emulator_pid" 2>/dev/null || true' EXIT
-          if ! timeout 300 "$adb" wait-for-device; then
-            cat "$RUNNER_TEMP/yoru-emulator.log"
-            exit 1
-          fi
-          for ((attempt=0; attempt<150; attempt++)); do
-            booted=$("$adb" shell getprop sys.boot_completed)
-            [[ "$booted" == 1 ]] && break
-            sleep 2
-          done
-          [[ "$booted" == 1 ]]
-          "$adb" shell input keyevent KEYCODE_WAKEUP
-          "$adb" shell wm dismiss-keyguard
-          "$adb" install -g dist/YoruGram-Offline-Test.apk
-          package=org.yorugram.messenger.web.smoke
-          "$adb" shell am start -W -n "$package/org.telegram.messenger.DefaultIcon"
-          sleep 5
-          "$adb" shell pidof "$package"
-          resumed=$("$adb" shell dumpsys activity activities | sed -n '/topResumedActivity=/p')
-          [[ "$resumed" == *"$package/"* ]]
-          "$adb" exec-out screencap -p > dist/YoruGram-Android.png
+          bash yoru-build/install-android-sdk.sh "$ANDROID_HOME" 'emulator' 'system-images;android-35;google_apis;x86_64'
+          bash yoru-build/verify-offline-apk.sh dist/YoruGram-Offline-Test.apk dist/YoruGram-Android.png
       - uses: actions/upload-artifact@v4
         if: env.USE_PROJECT_API != 'true'
         with:
