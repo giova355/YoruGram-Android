@@ -35,6 +35,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Test channel creation rules
+        run: |
+          mkdir -p "$RUNNER_TEMP/channel-policy"
+          javac -encoding UTF-8 -d "$RUNNER_TEMP/channel-policy" \
+            TMessagesProj/src/main/java/org/yorugram/moderation/ChannelPolicy.java yoru-build/ChannelPolicyTest.java
+          java -cp "$RUNNER_TEMP/channel-policy" ChannelPolicyTest
       - name: Install Android SDK and native build tools
         run: |
           sdk="$RUNNER_TEMP/android-sdk"
@@ -80,7 +86,7 @@ jobs:
         if: env.USE_PROJECT_API != 'true'
         run: |
           bash yoru-build/install-android-sdk.sh "$ANDROID_HOME" 'emulator' 'system-images;android-35;google_apis;x86_64'
-          bash yoru-build/verify-offline-apk.sh dist/YoruGram-Offline-Test.apk dist/YoruGram-Android.png
+          YORU_EXPECT_BRAND=true bash yoru-build/verify-offline-apk.sh dist/YoruGram-Offline-Test.apk dist/YoruGram-Android.png
       - uses: actions/upload-artifact@v4
         if: env.USE_PROJECT_API != 'true'
         with:

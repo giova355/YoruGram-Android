@@ -59,5 +59,9 @@ if ! "$adb" shell pidof "$package" ||
     "$adb" logcat -d -s AndroidRuntime
     exit 1
 fi
+if [[ "${YORU_EXPECT_BRAND:-false}" == true ]]; then
+    "$adb" shell uiautomator dump /sdcard/yoru-intro.xml
+    "$adb" shell cat /sdcard/yoru-intro.xml | grep -F 'text="YoruGram"'
+fi
 "$adb" exec-out screencap -p > "$screenshot"
 test -s "$screenshot"

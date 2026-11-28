@@ -8,6 +8,7 @@
 
 package org.telegram.ui;
 
+
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
@@ -90,6 +91,7 @@ import org.telegram.ui.Components.RLottieImageView;
 import org.telegram.ui.Components.RadialProgressView;
 import org.telegram.ui.Components.SizeNotifierFrameLayout;
 import org.telegram.ui.Components.TypefaceSpan;
+import org.yorugram.moderation.ChannelPolicy;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -351,6 +353,14 @@ public class ChannelCreateActivity extends BaseFragment implements NotificationC
                                 v.vibrate(200);
                             }
                             AndroidUtilities.shakeView(nameTextView);
+                            return;
+                        }
+                        if (ChannelPolicy.blocksCreation(nameTextView.getText(), descriptionTextView.getText())) {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+                            builder.setTitle(LocaleController.getString(R.string.YoruChannelPolicyTitle));
+                            builder.setMessage(LocaleController.getString(R.string.YoruChannelPolicyBlock));
+                            builder.setPositiveButton(LocaleController.getString(R.string.Close), null);
+                            showDialog(builder.create());
                             return;
                         }
                         donePressed = true;

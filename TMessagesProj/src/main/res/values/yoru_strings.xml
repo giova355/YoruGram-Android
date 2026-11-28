@@ -10,4 +10,8 @@
     <string name="YoruProxyHelp">Use your own Telegram proxy for app-only connectivity. Managed servers and trial subscriptions are not available yet.</string>
     <string name="YoruProxySettings">Open proxy settings</string>
     <string name="YoruConnectBeforeLogin">Yoru Connect: proxy settings</string>
+    <string name="YoruIntroDisclosure">Independent client using the Telegram API.</string>
+    <string name="YoruIntroOffline">Offline build for interface testing. Telegram sign-in is unavailable.</string>
+    <string name="YoruChannelPolicyTitle">Channel creation blocked</string>
+    <string name="YoruChannelPolicyBlock">YoruGram does not allow channel creation with explicit calls to attack or kill people, or with an explicit offer to share recordings of real killings. Edit the title or description to continue.</string>
 </resources>

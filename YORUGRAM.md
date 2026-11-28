@@ -2,6 +2,8 @@
 
 Unofficial Telegram Android fork. The upstream GPL license and notices remain in place. This branch includes a YoruGram settings screen, a localized wallpaper gallery with PNG export, and a shortcut to Telegram's built-in proxy configuration.
 
+The standalone welcome screen uses YoruGram branding and discloses use of the Telegram API. When creating a channel, the client locally checks its title and description for explicit calls to real violence and explicit offers to share recordings of real killings. Age labels, ordinary fictional horror, anime and comics do not trigger this check on their own. Telegram's terms and applicable law still apply. See the [compatibility policy](yoru-connect/TELEGRAM-COMPATIBILITY.md).
+
 ## Build and install the offline APK
 
 Install JDK 17, Android SDK Platform 36, Build Tools 36.0.0, NDK 27.2.12479018, and CMake 3.22.1. Clone `yoru/foundation` and its submodules. Open the repository root as a project in Android Studio or use the same root in VS Code.

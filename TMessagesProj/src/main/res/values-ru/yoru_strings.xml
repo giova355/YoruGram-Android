@@ -9,4 +9,8 @@
     <string name="YoruProxyHelp">Используйте собственный прокси Telegram для подключения приложения. Серверы YoruGram и пробный период пока недоступны.</string>
     <string name="YoruProxySettings">Настройки прокси</string>
     <string name="YoruConnectBeforeLogin">Yoru Connect: настройки прокси</string>
+    <string name="YoruIntroDisclosure">Независимый клиент, использующий Telegram API.</string>
+    <string name="YoruIntroOffline">Автономная сборка для проверки интерфейса. Вход в Telegram недоступен.</string>
+    <string name="YoruChannelPolicyTitle">Создание канала остановлено</string>
+    <string name="YoruChannelPolicyBlock">YoruGram запрещает создание каналов с явными призывами нападать на людей или убивать, а также с явным предложением распространять записи реальных убийств. Измените название или описание, чтобы продолжить.</string>
 </resources>
