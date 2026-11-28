@@ -14,4 +14,8 @@
     <string name="YoruIntroOffline">Offline build for interface testing. Telegram sign-in is unavailable.</string>
     <string name="YoruChannelPolicyTitle">Channel creation blocked</string>
     <string name="YoruChannelPolicyBlock">YoruGram does not allow channel creation with explicit calls to attack or kill people, or with an explicit offer to share recordings of real killings. Edit the title or description to continue.</string>
+    <string name="YoruReportAccountTheftBot">Report a hacking bot</string>
+    <string name="YoruReportAccountTheftBotConfirm">Use this if the bot offers to hack accounts using phone numbers or email addresses. YoruGram will send a report to Telegram. If Telegram accepts the report, YoruGram will block the bot and delete this chat from your account.</string>
+    <string name="YoruReportAndRemoveBot">Report and delete chat</string>
+    <string name="YoruReportBotFailed">Telegram did not accept the report. You can try again or block the bot separately.</string>
 </resources>

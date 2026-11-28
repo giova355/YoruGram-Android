@@ -29,4 +29,6 @@ The workflow also installs the APK on an Android 35 x86_64 emulator, opens the l
 
 For CI, set the same names as [repository secrets](https://github.com/giova355/YoruGram-Android/settings/secrets/actions). Set the repository Actions variable `YORU_CI_PROJECT_API` to `true` to select the credentialed build on the next push to `yoru/foundation`. Unset the variable to return to offline builds. If the workflow is also present on the default branch, manual runs can select **Build with the project's Telegram API and Firebase configuration**. CI compiles this variant on a public fork and uploads its APK only in a private repository. Keep the configured Java source, Firebase files, and signing keys out of commits. Use your own stable signing key for a production release.
 
+In a one-to-one bot chat, **Report a hacking bot** opens a confirmation. It reports an offer of unauthorized access to Telegram. Only after Telegram acknowledges receipt does YoruGram block the bot and delete the reporting user's copy of the chat. The report sends the bot's account identifier and a fixed reason. Telegram decides on wider enforcement.
+
 The Windows companion is [YoruGram Desktop](https://github.com/giova355/YoruGram-Desktop/tree/yoru/foundation).

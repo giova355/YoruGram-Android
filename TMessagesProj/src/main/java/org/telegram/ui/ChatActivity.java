@@ -108,6 +108,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Space;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
@@ -574,6 +575,7 @@ public class ChatActivity extends BaseFragment implements
     private boolean addToContactsButtonArchive;
     @Nullable
     private TextView reportSpamButton;
+    private boolean yoruBotReportPending;
     @Nullable
     private TextView restartTopicButton;
     @Nullable
@@ -1727,6 +1729,7 @@ public class ChatActivity extends BaseFragment implements
 
     private final static int chat_menu_topic_create = 73;
     private final static int chat_menu_topics_panel = 75;
+    private final static int report_account_theft_bot = 76;
 
     private final static int id_chat_compose_panel = 1000;
 
@@ -3933,6 +3936,8 @@ public class ChatActivity extends BaseFragment implements
                     }
                 } else if (id == report) {
                     ReportBottomSheet.openChat(ChatActivity.this);
+                } else if (id == report_account_theft_bot) {
+                    showAccountTheftBotReport();
                 } else if (id == star) {
                     for (int a = 0; a < 2; a++) {
                         for (int b = 0; b < selectedMessagesCanStarIds[a].size(); b++) {
@@ -4406,6 +4411,9 @@ public class ChatActivity extends BaseFragment implements
             updateTranslateItemVisibility();
             if (currentChat != null && !currentChat.creator && !ChatObject.hasAdminRights(currentChat)) {
                 headerItem.lazilyAddSubItem(report, R.drawable.msg_report, LocaleController.getString(R.string.ReportChat));
+            }
+            if (canReportAccountTheftBot()) {
+                headerItem.lazilyAddSubItem(report_account_theft_bot, R.drawable.msg_report, getString(R.string.YoruReportAccountTheftBot));
             }
             if (currentUser != null && currentUser.id != UserObject.VERIFY && currentUser.id != UserObject.REPLY_BOT) {
                 addContactItem = headerItem.lazilyAddSubItem(share_contact, R.drawable.msg_addcontact, LocaleController.getString(R.string.AddToContacts));
@@ -13346,6 +13354,46 @@ public class ChatActivity extends BaseFragment implements
 
     public long getMergeDialogId() {
         return mergeDialogId;
+    }
+
+    private boolean canReportAccountTheftBot() {
+        return chatMode == 0 && currentEncryptedChat == null
+                && dialog_id > 0 && UserObject.isBot(currentUser) && !UserObject.isDeleted(currentUser)
+                && !UserObject.isReplyUser(currentUser) && currentUser.id != UserObject.VERIFY;
+    }
+
+    private void showAccountTheftBotReport() {
+        if (getParentActivity() == null || yoruBotReportPending || !canReportAccountTheftBot()) {
+            return;
+        }
+        final long botId = currentUser.id;
+        final MessagesController messages = getMessagesController();
+        showDialog(new AlertDialog.Builder(getParentActivity(), themeDelegate)
+                .setTitle(getString(R.string.YoruReportAccountTheftBot))
+                .setMessage(getString(R.string.YoruReportAccountTheftBotConfirm))
+                .setNegativeButton(getString(R.string.Cancel), null)
+                .setPositiveButton(getString(R.string.YoruReportAndRemoveBot), (dialog, which) -> {
+                    TL_account.reportPeer request = new TL_account.reportPeer();
+                    request.peer = messages.getInputPeer(botId);
+                    request.reason = new TLRPC.TL_inputReportReasonOther();
+                    request.message = "This bot offers unauthorized access to accounts using phone numbers or email addresses.";
+                    yoruBotReportPending = true;
+                    getConnectionsManager().sendRequest(request, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                        yoruBotReportPending = false;
+                        if (!(response instanceof TLRPC.TL_boolTrue)) {
+                            Toast.makeText(ApplicationLoader.applicationContext, getString(R.string.YoruReportBotFailed), Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        messages.blockPeer(botId);
+                        messages.deleteDialog(botId, 0, false);
+                        Toast.makeText(ApplicationLoader.applicationContext, getString(R.string.ReportChatSent), Toast.LENGTH_SHORT).show();
+                        if (isLastFragment()) {
+                            finishFragment();
+                        } else {
+                            removeSelfFromStack();
+                        }
+                    }), ConnectionsManager.RequestFlagFailOnServerErrors);
+                }).create());
     }
 
     public boolean hasReportSpam() {

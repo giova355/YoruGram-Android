@@ -13,4 +13,8 @@
     <string name="YoruIntroOffline">Автономная сборка для проверки интерфейса. Вход в Telegram недоступен.</string>
     <string name="YoruChannelPolicyTitle">Создание канала остановлено</string>
     <string name="YoruChannelPolicyBlock">YoruGram запрещает создание каналов с явными призывами нападать на людей или убивать, а также с явным предложением распространять записи реальных убийств. Измените название или описание, чтобы продолжить.</string>
+    <string name="YoruReportAccountTheftBot">Пожаловаться на бота для взлома</string>
+    <string name="YoruReportAccountTheftBotConfirm">Используйте эту жалобу, если бот предлагает взломать аккаунт по номеру телефона или почте. YoruGram отправит жалобу в Telegram. Если Telegram примет жалобу, YoruGram заблокирует бота и удалит этот чат из вашего аккаунта.</string>
+    <string name="YoruReportAndRemoveBot">Пожаловаться и удалить чат</string>
+    <string name="YoruReportBotFailed">Telegram не принял жалобу. Можно повторить попытку или заблокировать бота отдельно.</string>
 </resources>
