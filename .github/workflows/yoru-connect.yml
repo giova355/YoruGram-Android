@@ -32,3 +32,37 @@ jobs:
           sudo apt-get install -y -qq wireguard-tools iputils-ping iproute2 nftables
           sudo modprobe wireguard
           sudo bash tests/wireguard-smoke.sh "$PWD/.venv/bin/python"
+  mtproxy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: yoru-connect/mtproxy
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build the pinned MTProxy engine
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential libssl-dev zlib1g-dev
+          bash build.sh "$RUNNER_TEMP/yoru-mtproxy"
+      - name: Check local listeners and key rotation
+        run: |
+          systemd-analyze verify --man=no yoru-mtproxy.service
+          python smoke.py "$RUNNER_TEMP/yoru-mtproxy/mtproto-proxy"
+      - name: Include installation files in the build output
+        run: cp README.md proxyctl.py yoru-mtproxy.service "$RUNNER_TEMP/yoru-mtproxy/"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yoru-mtproxy-linux-x64
+          path: ${{ runner.temp }}/yoru-mtproxy
+      - name: Test a real Telegram response through MTProxy
+        run: |
+          python -m pip install telethon==1.46.0 pyaes==1.6.1 rsa==4.9.1 pyasn1==0.6.5
+          local_ip=$(ip -4 route get 1.1.1.1 | awk '{ for (i=1; i<NF; i++) if ($i=="src") print $(i+1) }')
+          public_ip=$(curl -4fSs --max-time 10 https://checkip.amazonaws.com)
+          python smoke.py "$RUNNER_TEMP/yoru-mtproxy/mtproto-proxy" --live --nat "$local_ip:$public_ip"
