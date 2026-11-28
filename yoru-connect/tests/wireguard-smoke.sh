@@ -57,8 +57,8 @@ store.start_trial(token, now)
 store.enroll(token, sys.argv[1], now)
 PY
 server "$python" -m yoru_connect.admin reconcile --runtime-directory "$state"
-client wg set wg-yoru private-key "$state/client.key" peer "$YORU_SERVER_PUBLIC_KEY" \
-    endpoint "$YORU_ENDPOINT" allowed-ips '10.70.0.1/32,fd70:7952:7500::1/128' persistent-keepalive 25
+client wg set wg-yoru private-key /dev/stdin peer "$YORU_SERVER_PUBLIC_KEY" \
+    endpoint "$YORU_ENDPOINT" allowed-ips '10.70.0.1/32,fd70:7952:7500::1/128' persistent-keepalive 25 < "$state/client.key"
 client ping -c 1 -w 10 10.70.0.1
 client ping -6 -c 1 -w 10 fd70:7952:7500::1
 client wg show wg-yoru latest-handshakes | awk 'NF == 2 && $2 > 0 {found=1} END {exit !found}'
