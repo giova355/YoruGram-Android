@@ -4,7 +4,6 @@ import fcntl
 from pathlib import Path
 import re
 import subprocess
-import tempfile
 import time
 
 from .config import Settings, tunnel_addresses, wireguard_key
@@ -31,17 +30,14 @@ def reconcile(settings: Settings, runtime_path: Path) -> int:
         fcntl.flock(lock, fcntl.LOCK_EX)
         peers = Store(settings.database).active_peers(int(time.time()))
         conf = peer_config(settings, key, peers)
-        with tempfile.NamedTemporaryFile(mode="w", dir=runtime_path, prefix="wg-", encoding="ascii") as staged:
-            staged.write(conf)
-            staged.flush()
-            try:
-                subprocess.run(
-                    ["/usr/bin/wg", "syncconf", settings.interface, staged.name],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, check=True, timeout=10,
-                )
-            except subprocess.CalledProcessError as error:
-                diagnostic = re.sub(r"[A-Za-z0-9+/]{43}=", "[key omitted]", error.stderr or "").strip()
-                raise RuntimeError(f"WireGuard rejected the peer update: {diagnostic[:300]}") from None
-            except subprocess.TimeoutExpired:
-                raise RuntimeError("WireGuard peer update timed out") from None
+        try:
+            subprocess.run(
+                ["/usr/bin/wg", "syncconf", settings.interface, "/dev/stdin"],
+                input=conf, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, check=True, timeout=10,
+            )
+        except subprocess.CalledProcessError as error:
+            diagnostic = re.sub(r"[A-Za-z0-9+/]{43}=", "[key omitted]", error.stderr or "").strip()
+            raise RuntimeError(f"WireGuard rejected the peer update: {diagnostic[:300]}") from None
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("WireGuard peer update timed out") from None
         return len(peers)
