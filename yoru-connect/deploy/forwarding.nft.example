@@ -1,0 +1,17 @@
+define uplink = "eth0"
+define vpn = "wg-yoru"
+
+table inet yoru_connect {
+    chain forward {
+        type filter hook forward priority filter; policy accept;
+        iifname $vpn oifname $uplink ip saddr 10.70.0.0/24 ct state { new, established, related } accept
+        iifname $uplink oifname $vpn ip daddr 10.70.0.0/24 ct state { established, related } accept
+        iifname $vpn drop
+        oifname $vpn drop
+    }
+
+    chain egress {
+        type nat hook postrouting priority srcnat; policy accept;
+        oifname $uplink ip saddr 10.70.0.0/24 masquerade
+    }
+}

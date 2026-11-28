@@ -408,6 +408,9 @@ public class ApplicationLoader extends Application {
     }
 
     private void initPushServices() {
+        if (BuildConfig.YORU_OFFLINE_SMOKE) {
+            return;
+        }
         AndroidUtilities.runOnUIThread(() -> {
             if (getPushProvider().hasServices()) {
                 getPushProvider().onRequestPushToken();

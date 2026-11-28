@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh Yoru Connect WireGuard leases
+
+[Timer]
+OnBootSec=5s
+OnUnitActiveSec=10s
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

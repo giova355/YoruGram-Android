@@ -1,0 +1,51 @@
+name: Verify available YoruGram APK
+on:
+  push:
+    branches: ['yoru/foundation']
+    paths:
+      - '.github/workflows/yorugram-android-runtime.yml'
+      - 'yoru-build/verify-offline-apk.sh'
+permissions:
+  actions: read
+  contents: read
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Identify the last available offline APK
+        id: build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_id=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/artifacts" \
+            -f name=YoruGram-offline-test-APK --jq '.artifacts | map(select(.expired == false and .workflow_run.head_branch == "yoru/foundation")) | max_by(.created_at) | .workflow_run.id // empty')
+          [[ "$run_id" =~ ^[0-9]+$ ]]
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          name: YoruGram-offline-test-APK
+          path: dist
+          run-id: ${{ steps.build.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install and launch the Android APK
+        env:
+          ANDROID_HOME: ${{ runner.temp }}/android-sdk
+          ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+        run: |
+          bash yoru-build/install-android-sdk.sh "$ANDROID_HOME" 'platform-tools' 'emulator' 'system-images;android-35;google_apis;x86_64'
+          bash yoru-build/verify-offline-apk.sh dist/YoruGram-Offline-Test.apk dist/YoruGram-Android.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YoruGram-Android-first-launch
+          path: |
+            dist/YoruGram-Android.png
+          if-no-files-found: error
+          retention-days: 14

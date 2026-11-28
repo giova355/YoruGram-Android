@@ -1,0 +1,97 @@
+name: YoruGram test APK
+on:
+  push:
+    branches: ['yoru/foundation']
+    paths-ignore:
+      - 'yoru-connect/**'
+      - '.github/workflows/yoru-connect.yml'
+  workflow_dispatch:
+    inputs:
+      use_project_api:
+        description: Build with the project's Telegram API and Firebase configuration
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      USE_PROJECT_API: ${{ inputs.use_project_api == true || (github.event_name == 'push' && vars.YORU_CI_PROJECT_API == 'true') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure project API and Firebase
+        if: env.USE_PROJECT_API == 'true'
+        env:
+          YORU_API_ID: ${{ secrets.YORU_API_ID }}
+          YORU_API_HASH: ${{ secrets.YORU_API_HASH }}
+          YORU_FIREBASE_JSON: ${{ secrets.YORU_FIREBASE_JSON }}
+        run: python3 yoru-build/configure.py
+      - name: Check out build dependencies
+        run: git submodule update --init --recursive --depth 1 --jobs 8
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Test channel creation rules
+        run: |
+          mkdir -p "$RUNNER_TEMP/channel-policy"
+          javac -encoding UTF-8 -d "$RUNNER_TEMP/channel-policy" \
+            TMessagesProj/src/main/java/org/yorugram/moderation/ChannelPolicy.java yoru-build/ChannelPolicyTest.java
+          java -cp "$RUNNER_TEMP/channel-policy" ChannelPolicyTest
+      - name: Install Android SDK and native build tools
+        run: |
+          sdk="$RUNNER_TEMP/android-sdk"
+          bash yoru-build/install-android-sdk.sh "$sdk" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1' 'platform-tools'
+          printf 'ANDROID_HOME=%s\nANDROID_SDK_ROOT=%s\n' "$sdk" "$sdk" >> "$GITHUB_ENV"
+      - name: Compile standalone debug variant
+        run: |
+          args=()
+          if [[ "$USE_PROJECT_API" != true ]]; then
+            args+=(-PyoruOfflineSmoke=true)
+          fi
+          bash gradlew --no-daemon "${args[@]}" :TMessagesProj_AppStandalone:assembleAfatDebug
+      - name: Verify APK signature, package and native libraries
+        run: |
+          mapfile -t apks < <(find TMessagesProj_AppStandalone/build/outputs/apk -name '*.apk' -type f)
+          test "${#apks[@]}" -eq 1
+          tools="$ANDROID_HOME/build-tools/36.0.0"
+          "$tools/apksigner" verify "${apks[0]}"
+          package=org.yorugram.messenger.web
+          filename=YoruGram.apk
+          if [[ "$USE_PROJECT_API" != true ]]; then
+            package+=.smoke
+            filename=YoruGram-Offline-Test.apk
+            permissions=$("$tools/aapt" dump permissions "${apks[0]}")
+            [[ "$permissions" != *android.permission.INTERNET* ]]
+          fi
+          badging=$("$tools/aapt" dump badging "${apks[0]}")
+          [[ "$badging" == "package: name='$package'"* ]]
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            unzip -Z1 "${apks[0]}" "lib/$abi/libtmessages.49.so"
+          done
+          mkdir -p dist
+          cp "${apks[0]}" "dist/$filename"
+      - uses: actions/upload-artifact@v4
+        if: env.USE_PROJECT_API != 'true' || github.event.repository.private
+        with:
+          name: YoruGram-${{ env.USE_PROJECT_API == 'true' && 'project-api-test' || 'offline-test' }}-APK
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Install and launch on an Android emulator
+        if: env.USE_PROJECT_API != 'true'
+        run: |
+          bash yoru-build/install-android-sdk.sh "$ANDROID_HOME" 'emulator' 'system-images;android-35;google_apis;x86_64'
+          YORU_EXPECT_BRAND=true bash yoru-build/verify-offline-apk.sh dist/YoruGram-Offline-Test.apk dist/YoruGram-Android.png
+      - uses: actions/upload-artifact@v4
+        if: env.USE_PROJECT_API != 'true'
+        with:
+          name: YoruGram-Android-first-launch
+          path: dist/YoruGram-Android.png
+          if-no-files-found: error
+          retention-days: 7

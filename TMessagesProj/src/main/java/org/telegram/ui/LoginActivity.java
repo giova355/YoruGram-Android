@@ -791,6 +791,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         proxyButtonView = new ImageView(context);
         proxyButtonView.setImageDrawable(proxyDrawable = new ProxyDrawable(context));
         proxyButtonView.setOnClickListener(v -> presentFragment(new ProxyListActivity()));
+        proxyButtonView.setContentDescription(context.getString(R.string.YoruConnectBeforeLogin));
         proxyButtonView.setAlpha(0f);
         proxyButtonView.setVisibility(View.GONE);
         sizeNotifierFrameLayout.addView(proxyButtonView, LayoutHelper.createFrame(32, 32, Gravity.RIGHT | Gravity.TOP, 16, 16, 16, 16));
@@ -9123,6 +9124,13 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         final boolean proxyEnabled = preferences.getBoolean("proxy_enabled", false) && !TextUtils.isEmpty(proxyAddress);
         final boolean connected = currentConnectionState == ConnectionsManager.ConnectionStateConnected || currentConnectionState == ConnectionsManager.ConnectionStateUpdating;
         final boolean connecting = currentConnectionState == ConnectionsManager.ConnectionStateConnecting || currentConnectionState == ConnectionsManager.ConnectionStateWaitingForNetwork || currentConnectionState == ConnectionsManager.ConnectionStateConnectingToProxy;
+        // Keep the existing proxy settings accessible even before signing in.
+        // Do not cover the email-change skip action in special login flows.
+        if (emailChangeSkipButton == null) {
+            proxyDrawable.setConnected(proxyEnabled, proxyEnabled && connected, animated);
+            showProxyButton(true, animated);
+            return;
+        }
         if (proxyEnabled) {
             proxyDrawable.setConnected(true, connected, animated);
             showProxyButton(true, animated);

@@ -8,6 +8,7 @@
 
 package org.telegram.ui;
 
+
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.LocaleController.formatPluralString;
 import static org.telegram.messenger.LocaleController.formatString;
@@ -242,6 +243,7 @@ import org.telegram.ui.bots.BotWebViewAttachedSheet;
 import org.telegram.ui.bots.BotWebViewSheet;
 import org.telegram.ui.bots.WebViewRequestProps;
 import org.webrtc.voiceengine.WebRtcAudioTrack;
+import org.yorugram.ui.YoruIntroActivity;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -1123,7 +1125,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         if (LoginActivity.loadCurrentState(false, currentAccount).getInt("currentViewNum", 0) != 0) {
             return new LoginActivity();
         }
-        return new IntroActivity();
+        return ApplicationLoader.isStandaloneBuild() ? new YoruIntroActivity() : new IntroActivity();
     }
 
     public FireworksOverlay getFireworksOverlay() {
@@ -1292,7 +1294,9 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 layersActionBarLayout.rebuildLogout();
                 rightActionBarLayout.rebuildLogout();
             }
-            presentFragment(new IntroActivity().setOnLogout());
+            presentFragment(ApplicationLoader.isStandaloneBuild()
+                    ? new YoruIntroActivity()
+                    : new IntroActivity().setOnLogout());
         }
     }
 

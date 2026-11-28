@@ -1,6 +1,8 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.telegram.build-app-plugin'
 
+def yoruOfflineSmoke = providers.gradleProperty('yoruOfflineSmoke').map { it.toBoolean() }.getOrElse(false)
+
 repositories {
     mavenCentral()
     google()
@@ -49,13 +51,6 @@ android {
     }
 
     signingConfigs {
-        debug {
-            storeFile file("../TMessagesProj/config/release.keystore")
-            storePassword RELEASE_STORE_PASSWORD
-            keyAlias RELEASE_KEY_ALIAS
-            keyPassword RELEASE_KEY_PASSWORD
-        }
-
         release {
             storeFile file("../TMessagesProj/config/release.keystore")
             storePassword RELEASE_STORE_PASSWORD
@@ -75,7 +70,7 @@ android {
             debuggable true
             jniDebuggable true
             signingConfig signingConfigs.debug
-            applicationIdSuffix ".web"
+            applicationIdSuffix yoruOfflineSmoke ? ".web.smoke" : ".web"
             minifyEnabled false
             multiDexEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro'
@@ -97,6 +92,9 @@ android {
 
     sourceSets.debug {
         manifest.srcFile '../TMessagesProj/config/release/AndroidManifest_standalone.xml'
+    }
+    if (yoruOfflineSmoke) {
+        sourceSets.maybeCreate('afatDebug').manifest.srcFile '../yoru-build/AndroidManifest_offline.xml'
     }
     sourceSets.standalone {
         manifest.srcFile '../TMessagesProj/config/release/AndroidManifest_standalone.xml'
@@ -129,7 +127,8 @@ android {
 
     variantFilter { variant ->
         def names = variant.flavors*.name
-        if (variant.buildType.name != "release" && !names.contains("afat")) {
+        if ((yoruOfflineSmoke && variant.buildType.name != 'debug') ||
+                (variant.buildType.name != 'release' && !names.contains('afat'))) {
             setIgnore(true)
         }
     }
@@ -163,4 +162,6 @@ android {
     }
 }
 
-apply plugin: 'com.google.gms.google-services'
+if (!yoruOfflineSmoke) {
+    apply plugin: 'com.google.gms.google-services'
+}

@@ -836,6 +836,10 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         if (items.get(items.size() - 1).viewType != UniversalAdapter.VIEW_TYPE_SHADOW)
             items.add(UItem.asShadow(null));
 
+        items.add(SettingCell.Factory.of(31001, 0xFF9B82E8, 0xFF6551A6, R.drawable.settings_features,
+                getString(R.string.YoruSettings)));
+        items.add(UItem.asShadow(null));
+
         items.add(UItem.asHeader(getString(R.string.SettingsHelp)));
         items.add(SettingCell.Factory.of(17, IconBackgroundColors.ORANGE.top, IconBackgroundColors.ORANGE.bottom, R.drawable.settings_ask, getString(R.string.AskAQuestion)));
         items.add(SettingCell.Factory.of(18, IconBackgroundColors.BLUE_LIGHT.top, IconBackgroundColors.BLUE_LIGHT.bottom, R.drawable.settings_faq, getString(R.string.TelegramFAQ)));
@@ -878,6 +882,10 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
     }
 
     private void onClick(UItem item, View view, int position, float x, float y) {
+        if (item.id == 31001 && item.instanceOf(SettingCell.Factory.class)) {
+            presentSettingFragment(new org.yorugram.ui.YoruSettingsActivity());
+            return;
+        }
         if (item.object instanceof TLRPC.TL_attachMenuBot) {
             TLRPC.TL_attachMenuBot attachMenuBot = (TLRPC.TL_attachMenuBot) item.object;
             if (attachMenuBot.inactive || attachMenuBot.side_menu_disclaimer_needed) {
