@@ -30,9 +30,9 @@ client_ip link set yoru-client0 up
 server_ip link add wg-yoru type wireguard
 client_ip link add wg-yoru type wireguard
 server_ip addr add 10.70.0.1/24 dev wg-yoru
-server_ip addr add fd70:7952:7500::1/64 dev wg-yoru
+server_ip addr add fd70:7952:7500::1/64 dev wg-yoru nodad
 client_ip addr add 10.70.0.2/24 dev wg-yoru
-client_ip addr add fd70:7952:7500::2/64 dev wg-yoru
+client_ip addr add fd70:7952:7500::2/64 dev wg-yoru nodad
 server_ip link set wg-yoru up
 client_ip link set wg-yoru up
 
@@ -57,8 +57,8 @@ store.start_trial(token, now)
 store.enroll(token, sys.argv[1], now)
 PY
 server "$python" -m yoru_connect.admin reconcile --runtime-directory "$state"
-client wg set wg-yoru private-key /dev/stdin peer "$YORU_SERVER_PUBLIC_KEY" \
-    endpoint "$YORU_ENDPOINT" allowed-ips '10.70.0.1/32,fd70:7952:7500::1/128' persistent-keepalive 25 < "$state/client.key"
+cat "$state/client.key" | client wg set wg-yoru private-key /dev/stdin peer "$YORU_SERVER_PUBLIC_KEY" \
+    endpoint "$YORU_ENDPOINT" allowed-ips '10.70.0.1/32,fd70:7952:7500::1/128' persistent-keepalive 25
 client ping -c 1 -w 10 10.70.0.1
 client ping -6 -c 1 -w 10 fd70:7952:7500::1
 client wg show wg-yoru latest-handshakes | awk 'NF == 2 && $2 > 0 {found=1} END {exit !found}'
