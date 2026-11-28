@@ -1,0 +1,22 @@
+[Unit]
+Description=Yoru Connect HTTPS backend
+After=network.target
+
+[Service]
+User=yoru-connect
+Group=yoru-connect
+WorkingDirectory=/opt/yoru-connect
+EnvironmentFile=/etc/yoru-connect/settings.env
+ExecStart=/opt/yoru-connect/.venv/bin/uvicorn yoru_connect.api:create_app --factory --host 127.0.0.1 --port 8074 --no-access-log --limit-concurrency 40
+Restart=on-failure
+StateDirectory=yoru-connect
+StateDirectoryMode=0700
+UMask=0077
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=true
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

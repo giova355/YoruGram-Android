@@ -1,0 +1,17 @@
+[Unit]
+Description=Apply active Yoru Connect WireGuard leases
+Requires=wg-quick@wg-yoru.service
+After=wg-quick@wg-yoru.service yoru-connect.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/yoru-connect
+EnvironmentFile=/etc/yoru-connect/settings.env
+ExecStart=/opt/yoru-connect/.venv/bin/python -m yoru_connect.admin reconcile
+RuntimeDirectory=yoru-connect-wg
+RuntimeDirectoryMode=0700
+UMask=0077
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=true
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_READ_SEARCH
