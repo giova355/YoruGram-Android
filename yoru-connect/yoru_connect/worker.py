@@ -2,6 +2,7 @@
 
 import fcntl
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import time
@@ -36,8 +37,11 @@ def reconcile(settings: Settings, runtime_path: Path) -> int:
             try:
                 subprocess.run(
                     ["/usr/bin/wg", "syncconf", settings.interface, staged.name],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=10,
+                    stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, check=True, timeout=10,
                 )
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-                raise RuntimeError("WireGuard could not apply the desired peer state") from None
+            except subprocess.CalledProcessError as error:
+                diagnostic = re.sub(r"[A-Za-z0-9+/]{43}=", "[key omitted]", error.stderr or "").strip()
+                raise RuntimeError(f"WireGuard rejected the peer update: {diagnostic[:300]}") from None
+            except subprocess.TimeoutExpired:
+                raise RuntimeError("WireGuard peer update timed out") from None
         return len(peers)
